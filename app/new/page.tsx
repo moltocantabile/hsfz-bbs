@@ -1,3 +1,4 @@
+import { recommendationsEnabled } from "@/lib/experiments";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { allBoards } from "@/lib/queries";
@@ -25,7 +26,7 @@ export default async function NewThreadPage({
             社区公约
           </Link>
         </div>
-        <NewThreadForm boards={boards} defaultBoardId={def?.id} isAdmin={user.role === "admin"} />
+        <NewThreadForm recommendationEnabled={recommendationsEnabled(user.id)} boards={boards} defaultBoardId={def?.id} isAdmin={user.role === "admin"} />
       </div>
     </div>
   );

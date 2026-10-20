@@ -49,12 +49,10 @@ public/uploads/*
 DEPLOY.md
 deploy/
 
-# Local agent tools, inspection output and offline model preparation
+# Local tools, inspection output, offline preparation and generated runtime
 /.agents/
 /skills-lock.json
 /.local-tools/
 /.taste-skill/
 /scripts/quantize-*.py
-
-# Generated local browser inference assets
 /public/recommendation-runtime/

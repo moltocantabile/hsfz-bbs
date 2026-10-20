@@ -2,7 +2,7 @@ import { IconButton, IconLink } from "./IconAction";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { unreadTicketCount, openTicketCount, unreadNotificationCount } from "@/lib/queries";
-import { unreadDmCount } from "@/lib/dm";
+import { unreadDirectCount } from "@/lib/social";
 import { SidebarNav, MobileMenu } from "./SidebarNav";
 import { Avatar } from "./Avatar";
 import SiteBadge from "./SiteBadge";
@@ -13,12 +13,14 @@ export default async function Header() {
   const user = await getCurrentUser();
   const unread = user ? unreadTicketCount(user.id) + unreadNotificationCount(user.id) : 0;
   const openTickets = user?.role === "admin" ? openTicketCount() : 0;
-  const directUnread = user ? unreadDmCount(user.id) : 0;
+  const directUnread = user ? unreadDirectCount(user.id) : 0;
   const links = [
     { href: "/", label: "校园讨论", icon: "M4 4h16v12H9l-5 4V4Z" },
     { href: "/boards", label: "全部板块", icon: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" },
-    { href: "/dm", label: "私信", count: directUnread, icon: "M3 5h18v14H3z M3 5l9 7 9-7" },
+    { href: "/groups", label: "兴趣小组", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M20 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8" },
+    { href: "/inbox", label: "私信", count: directUnread, icon: "M3 5h18v14H3z M3 5l9 7 9-7" },
     { href: "/messages", label: "通知与工单", count: unread, icon: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4" },
+    ...(user ? [{ href: "/experimental", label: "实验功能", icon: "M9 3h6m-5 0v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8" }] : []),
     ...(user?.role === "admin" ? [{ href: "/admin", label: "管理后台", count: openTickets, icon: "M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7l8-4Z" }] : []),
   ];
 
