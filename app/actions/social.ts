@@ -1,5 +1,6 @@
 "use server";
 
+import { allowAction } from "@/lib/ratelimit";
 import { getCurrentUser } from "@/lib/auth";
 import * as social from "@/lib/social";
 import { revalidatePath } from "next/cache";
@@ -26,6 +27,12 @@ export async function sendMessageAction(_: ActionState, form: FormData): Promise
     // Check access before processing a potentially large upload; sending checks it again after the await.
     if (kind === "direct") social.assertDirectSendAccess(user.id, id);
     else social.assertGroupSendAccess(user.id, id);
+    const content = text(form, "content");
+    if (content.trim()) social.messageContent(content);
+    if (kind === "direct") {
+      const rate = allowAction(`dm:${user.id}`, 15_000);
+      if (!rate.ok) return { ok: false, message: `私信发送过于频繁，请 ${rate.retryAfterSec} 秒后再试` };
+    }
     const attachment = await prepareAttachment(form);
     if (kind === "direct") social.sendDirectMessage(user.id, id, text(form, "content"), attachment);
     else social.sendGroupMessage(user.id, id, text(form, "content"), attachment);

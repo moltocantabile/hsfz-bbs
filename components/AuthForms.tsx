@@ -117,6 +117,11 @@ export function RegisterForm() {
         <label className="mb-1 block text-sm font-medium">确认密码</label>
         <input name="password2" type="password" required minLength={6} className="input" placeholder="再输入一次" />
       </div>
+      <p className="rounded-md bg-soft/60 px-3 py-2 text-xs leading-5 text-muted">
+        隐私说明：姓名、学号、手机号仅用于身份核验与找回密码，保存在论坛数据库中；密码经
+        bcrypt 单向加密，任何人（包括管理员）都无法查看原文；上传图片会自动剥离 EXIF/GPS
+        定位信息。昵称默认为真实姓名，登录后可在「账号设置」修改。
+      </p>
       <div className="flex justify-end"><SubmitButton className="btn-primary" icon="user-plus" pendingText="提交中…">
         提交注册申请
       </SubmitButton></div>

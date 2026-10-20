@@ -121,6 +121,20 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read INTEGER DEFAULT 0,
   created_at TEXT DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS follows (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  follower_id INTEGER NOT NULL,
+  following_id INTEGER NOT NULL,
+  created_at TEXT DEFAULT '',
+  UNIQUE(follower_id, following_id)
+);
+CREATE TABLE IF NOT EXISTS blocks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  blocked_id INTEGER NOT NULL,
+  created_at TEXT DEFAULT '',
+  UNIQUE(user_id, blocked_id)
+);
 CREATE TABLE IF NOT EXISTS whitelist (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   real_name TEXT NOT NULL,

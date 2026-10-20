@@ -82,14 +82,29 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
   redirect(wlEntry ? "/login?registered=1&fast=1" : "/login?registered=1");
 }
 
+const loginFails = new Map<string, { n: number; until: number }>();
+
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const lock = loginFails.get(username);
+  if (lock && lock.until > Date.now())
+    return fail(`登录失败次数过多，请 ${Math.ceil((lock.until - Date.now()) / 60000)} 分钟后再试`);
+
   const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as
     | (import("@/lib/db").UserRow & { id: number })
     | undefined;
-  if (!user || !bcrypt.compareSync(password, user.password_hash))
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    const rec = loginFails.get(username) ?? { n: 0, until: 0 };
+    rec.n += 1;
+    if (rec.n >= 5) {
+      rec.n = 0;
+      rec.until = Date.now() + 15 * 60_000;
+    }
+    loginFails.set(username, rec);
     return fail("用户名或密码错误");
+  }
+  loginFails.delete(username);
   if (user.banned) return fail("该账号已被封禁，如有疑问请联系管理员");
   if (user.status === "pending") return fail("账号正在审核中，请等待管理员批准后再登录");
   if (user.status === "rejected")

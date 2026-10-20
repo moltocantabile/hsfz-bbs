@@ -1,3 +1,5 @@
+import { isBlocked } from "./dm";
+import { findSensitiveWord } from "./moderation";
 import { db } from "./db";
 import { nowStr } from "./format";
 import { attachmentInfo, insertAttachment, type PreparedAttachment } from "./attachments";
@@ -11,6 +13,8 @@ function activeUser(id: number) {
 export function messageContent(value: string) {
   const content = value.trim();
   if (!content || content.length > 10000) throw new SocialError("消息需为 1–10,000 字");
+  const word = findSensitiveWord(content);
+  if (word) throw new SocialError(`消息包含敏感词「${word}」，请修改后重试`);
   return content;
 }
 export function conversationFor(id: number, userId: number) {
@@ -32,6 +36,8 @@ export function assertDirectSendAccess(userId: number, id: number) {
   activeUser(userId);
   const conversation = conversationFor(id, userId);
   if (!conversation) throw new SocialError("会话不存在或你无权访问");
+  const otherId = conversation.user_low === userId ? conversation.user_high : conversation.user_low;
+  if (isBlocked(userId, otherId)) throw new SocialError("你或对方已拉黑，无法发送私信");
   if (conversation.banned || conversation.status !== "approved") throw new SocialError("对方当前无法接收私信");
 }
 export function sendDirectMessage(userId: number, id: number, value: string, attachment?: PreparedAttachment) {

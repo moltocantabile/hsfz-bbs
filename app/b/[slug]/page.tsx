@@ -1,6 +1,6 @@
 import { IconLink } from "@/components/IconAction";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { boardBySlug, boardThreads } from "@/lib/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { ThreadList } from "@/components/ThreadList";
@@ -13,6 +13,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function BoardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  // 游客仅可查看站务公告板块，其余内容需登录
+  if (slug !== "announcements" && !(await getCurrentUser())) redirect("/login");
   const board = boardBySlug(slug);
   if (!board) notFound();
   const threads = boardThreads(board.id);

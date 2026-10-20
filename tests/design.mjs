@@ -40,7 +40,9 @@ try {
     upstream.on('error', () => { res.writeHead(502);res.end(); }); req.pipe(upstream);
   });
   await new Promise(r=>proxy.listen(3104,'127.0.0.1',r));
-  const targets = process.argv.includes('--icons')
+  const targets = process.argv.includes('--sync')
+    ? [['sync-home', '/'], ['sync-profile', '/u/su2027'], ['sync-direct', `/inbox/${conversation}`]]
+    : process.argv.includes('--icons')
     ? [['icons-group', `/groups/${group}`], ['icons-thread', `/t/${thread}#reply-form`], ['icons-admin', '/admin?tab=threads'], ['icons-settings', '/settings']]
     : process.argv.includes('--editor')
     ? [['editor-direct', `/inbox/${conversation}`], ['editor-group', `/groups/${group}`], ['editor-thread', `/t/${thread}#reply-form`], ['editor-new', '/new?board=study']]

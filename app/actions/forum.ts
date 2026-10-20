@@ -7,6 +7,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { nowStr } from "@/lib/format";
 import { saveUploadImage, removeUploadFile } from "@/lib/upload";
 import { notify, mentionUserIds } from "@/lib/notify";
+import { findSensitiveWord } from "@/lib/moderation";
+import { allowAction } from "@/lib/ratelimit";
 import type { ActionState } from "./auth";
 
 const fail = (message: string): ActionState => ({ message, ok: false });
@@ -35,6 +37,11 @@ export async function createThreadAction(
         (user.grade ? `（你当前是${user.grade}）` : "（你还未填写年级）") +
         "，可在「账号设置」中确认年级"
     );
+
+  const sensitive = findSensitiveWord(`${title}\n${content}`);
+  if (sensitive) return fail(`内容包含敏感词「${sensitive}」，请修改后重发`);
+  const rate = allowAction(`thread:${user.id}`, 60_000);
+  if (!rate.ok) return fail(`发帖太频繁啦，请 ${rate.retryAfterSec} 秒后再试`);
 
   // 图片附件（最多 4 张，浏览器端已压缩）
   const files = formData.getAll("images").filter(
@@ -106,6 +113,11 @@ export async function createReplyAction(
   if (replyTo && !db.prepare("SELECT id FROM replies WHERE id = ? AND thread_id = ?").get(replyTo, threadId)) {
     return fail("引用的楼层不存在或已被删除");
   }
+
+  const sensitive = findSensitiveWord(content);
+  if (sensitive) return fail(`内容包含敏感词「${sensitive}」，请修改后重发`);
+  const rate = allowAction(`reply:${user.id}`, 30_000);
+  if (!rate.ok) return fail(`回复太频繁啦，请 ${rate.retryAfterSec} 秒后再试`);
 
   // 回复图片（最多 2 张，浏览器端已压缩）
   const files = formData.getAll("images").filter(

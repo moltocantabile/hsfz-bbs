@@ -1,3 +1,5 @@
+import { toggleFollowAction } from "@/app/actions/follow";
+import { SubmitButton } from "@/components/SubmitButton";
 import { IconLink } from "@/components/IconAction";
 import { ScrollRow } from "@/components/ScrollRow";
 import Link from "next/link";
@@ -8,6 +10,7 @@ import {
   userReplies,
   userFavorites,
   likesReceived,
+  followStats,
 } from "@/lib/queries";
 import { userPostCount } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -36,6 +39,7 @@ export default async function UserProfilePage({
   if (!profile) notFound();
 
   const me = await getCurrentUser();
+  const fstats = followStats(profile.id, me?.id);
   const isSelf = me?.id === profile.id;
   const postCount = userPostCount(profile.id);
   const level = getLevel(postCount);
@@ -76,7 +80,10 @@ export default async function UserProfilePage({
               @{profile.username}
               {profile.grade && ` · ${profile.grade}`}
             </p>
-            {!isSelf && me && profile.status === "approved" && !profile.banned && <IconLink href={`/inbox?to=${encodeURIComponent(profile.username)}`} className="btn mt-3" icon="message" label="发送私信" />}
+            <div className="mt-3 flex items-center gap-2">
+            {!isSelf && me && <form action={toggleFollowAction}><input type="hidden" name="user_id" value={profile.id} /><SubmitButton icon={fstats.isFollowing ? "user-minus" : "user-plus"} active={fstats.isFollowing} className={fstats.isFollowing ? "btn" : "btn-primary"}>{fstats.isFollowing ? "取消关注" : "关注"}</SubmitButton></form>}
+            {!isSelf && me && profile.status === "approved" && !profile.banned && <IconLink href={`/inbox?to=${encodeURIComponent(profile.username)}`} className="btn" icon="message" label="发送私信" />}
+            </div>
             {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
               <span className="text-muted">
@@ -88,6 +95,8 @@ export default async function UserProfilePage({
               <span className="text-muted">
                 获赞 <b className="text-ink">{likes}</b>
               </span>
+              <span className="text-muted">关注 <b className="text-ink">{fstats.following}</b></span>
+              <span className="text-muted">粉丝 <b className="text-ink">{fstats.followers}</b></span>
               <span className="text-muted">加入于 {profile.created_at.slice(0, 10)}</span>
             </div>
             {/* 等级进度 */}

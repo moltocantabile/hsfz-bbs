@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 export function Avatar({
   user,
   size = 40,
@@ -7,13 +11,16 @@ export function Avatar({
   size?: number;
   className?: string;
 }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const style = { width: size, height: size };
-  if (user.avatar) {
+  if (user.avatar && user.avatar !== failedUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={user.avatar}
         alt={user.nickname}
+        loading="lazy"
+        onError={() => setFailedUrl(user.avatar ?? null)}
         style={style}
         className={`shrink-0 rounded-md border border-line bg-card object-cover ${className}`}
       />

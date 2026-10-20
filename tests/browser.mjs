@@ -140,6 +140,9 @@ try {
   await checkAttachmentTool('上传文件');
   completed.push('Editor selection formatting, keyboard shortcut, undo/redo, formula preview, controlled emoji insertion and paperclip picker');
 
+  await fill('textarea[name=content]', '代开发票'); await submit('form.message-composer');
+  await waitFor(() => page.eval(() => document.body.innerText.includes('敏感词')), 'DM moderation');
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM direct_messages').get().n, 0);
   await fill('textarea[name=content]', '**私信测试** $x^2$\n\n[数学资料](https://mathworld.wolfram.com/)');
   await checkIconActions();
   await page.eval(() => document.querySelector('.message-composer button[aria-label="发送消息"]').click());
@@ -149,6 +152,11 @@ try {
   assert.equal(await page.eval(() => document.querySelectorAll('.chat-message .link-card').length), 1);
   await page.screenshot({ path: join(output, 'dm-desktop.jpg') });
   completed.push('DM creation, send, draft reset, Markdown/math/link card');
+  const firstDmAt = Date.now();
+  await fill('textarea[name=content]', '冷却期间的消息'); await submit('form.message-composer');
+  await waitFor(() => page.eval(() => document.body.innerText.includes('私信发送过于频繁')), 'DM cooldown');
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM direct_messages').get().n, 1);
+  assert.equal(await page.eval(() => document.querySelector('textarea').value), '冷却期间的消息');
   const outsiderToken = await authenticate(outsider);
   const forbidden = await fetch(origin + conversationPath, { headers: { Cookie: `hsfz_session=${outsiderToken}` } });
   // With a loading boundary Next.js can stream the not-found state with HTTP 200.
@@ -178,6 +186,7 @@ try {
   await waitFor(() => page.eval(() => document.body.innerText.includes('原始文件不能超过 10 MB')), 'browser size limit');
   const transferBytes = Buffer.from('浏览器压缩与解压\0'.repeat(6000));
   await chooseFile('华附资料.txt', transferBytes);
+  await sleep(Math.max(1, 15100 - (Date.now() - firstDmAt)));
   await submit('form.message-composer');
   await waitFor(() => page.eval(() => document.querySelectorAll('.chat-attachment').length === 1), 'DM file-only send');
   const directFile = db.prepare('SELECT * FROM chat_attachments').get();
@@ -202,6 +211,31 @@ try {
   await waitFor(() => page.eval(() => document.body.innerText.includes('文件已过期')), 'expired attachment feedback');
   assert.equal(db.prepare('SELECT 1 FROM chat_attachments WHERE id = ?').get(directFile.id), undefined);
   completed.push('DM file size limit, browser gzip upload, private compressed download, browser decompression, exact byte/filename restoration and expiry');
+  await page.eval(() => document.querySelector('button[aria-label="拉黑"]').click());
+  await waitFor(() => page.eval(() => !!document.querySelector('button[aria-label="取消拉黑"]') && !document.querySelector('.message-composer')), 'block DM');
+  await checkIconActions();
+  await page.setViewport({ width: 390, height: 844, mobile: true });
+  assert.ok(await page.eval(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({ path: join(output, 'blocked-dm-mobile.jpg') });
+  await authenticate(bob); await page.goto(origin + conversationPath);
+  assert.equal(await page.eval(() => !!document.querySelector('.message-composer')), false);
+  assert.equal(await page.eval(() => !!document.querySelector('button[aria-label="拉黑"]')), true, "recipient cannot remove another user's block");
+  await authenticate(alice); await page.goto(origin + conversationPath);
+  await page.eval(() => document.querySelector('button[aria-label="取消拉黑"]').click());
+  await waitFor(() => page.eval(() => !!document.querySelector('.message-composer')), 'unblock DM');
+  await page.goto(`${origin}/u/${bob.username}`);
+  await page.eval(() => document.querySelector('button[aria-label="关注"]').click());
+  await waitFor(() => page.eval(() => !!document.querySelector('button[aria-label="取消关注"]')), 'follow');
+  assert.ok(db.prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?').get(alice.id, bob.id));
+  assert.ok(db.prepare("SELECT 1 FROM notifications WHERE type = 'follow' AND user_id = ? AND actor_id = ?").get(bob.id, alice.id));
+  await checkIconActions();
+  assert.ok(await page.eval(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({ path: join(output, 'follow-profile-mobile.jpg') });
+  await page.eval(() => document.querySelector('button[aria-label="取消关注"]').click());
+  await waitFor(() => page.eval(() => !!document.querySelector('button[aria-label="关注"]')), 'unfollow');
+  assert.equal(db.prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?').get(alice.id, bob.id), undefined);
+  await page.setViewport({ width: 1440, height: 900, mobile: false });
+  completed.push('Upstream sensitive-word rejection, 15-second DM cooldown, bidirectional blocking/unblocking, follow/unfollow and follow notifications');
   await page.goto(`${origin}/groups/new`);
   await fill('input[name=name]', '华附数学讨论'); await fill('textarea[name=description]', '一起研究有趣的问题，分享解题思路。');
   await submit('form:has(input[name=name])');
@@ -353,6 +387,14 @@ try {
     await page.goto(origin + route); await checkIconActions();
   }
   await page.send('Network.deleteCookies', { name: 'hsfz_session', url: origin });
+  await page.goto(origin);
+  assert.ok(await page.eval(() => document.body.innerText.includes('站务公告')));
+  assert.equal(await page.eval(() => document.body.innerText.includes('排版验证：数学与链接')), false);
+  assert.equal(await page.eval(() => !!document.querySelector('[aria-label="帖子排序"]')), false);
+  const guestBoard = await fetch(`${origin}/b/study`, { redirect: 'manual' });
+  assert.equal(guestBoard.status, 307);
+  assert.equal((await fetch(`${origin}/b/announcements`)).status, 200);
+  completed.push('Guest home shows public announcements and hides private topics; private boards require login');
   for (const route of ['/login', '/register', '/forgot']) {
     await page.goto(origin + route); await checkIconActions();
     assert.ok(await page.eval(() => !!document.querySelector('button[type=submit] svg[data-action-icon]')), route + ': icon submit');

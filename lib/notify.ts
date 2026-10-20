@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { nowStr } from "./format";
 
-export type NotifyType = "reply" | "quote" | "mention" | "like";
+export type NotifyType = "reply" | "quote" | "mention" | "like" | "follow";
 
 /** 创建一条站内通知（不通知自己） */
 export function notify(

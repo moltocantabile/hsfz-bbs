@@ -286,3 +286,63 @@ test('upstream DM schema migrates atomically with message IDs, history and read 
     assert.deepEqual(run(`console.log(JSON.stringify({messages:db.prepare('SELECT COUNT(*) n FROM direct_messages').get().n,conversations:db.prepare('SELECT COUNT(*) n FROM direct_conversations').get().n}));`), {messages:5, conversations:2});
   } finally { fs.rmSync(legacyDir, { recursive:true, force:true }); }
 });
+
+
+test('upstream blocks protect text and file-only DM sends in both directions without deleting history', async () => {
+  const { toggleBlock, hasBlocked, isBlocked } = require('../lib/dm.ts');
+  const id = social.startConversation(a.id, b.username);
+  const file = await attachments.prepareAttachment(uploadForm(Buffer.from('blocked-file')));
+  const historyCount = social.directMessages(a.id, id).length;
+  const fileCount = db.prepare('SELECT COUNT(*) n FROM chat_attachments').get().n;
+  assert.equal(toggleBlock(a.id, b.id), 'blocked');
+  assert.equal(hasBlocked(a.id, b.id), true);
+  assert.equal(hasBlocked(b.id, a.id), false);
+  for (const user of [a, b]) {
+    assert.equal(isBlocked(user.id, user.id === a.id ? b.id : a.id), true);
+    assert.throws(() => social.assertDirectSendAccess(user.id, id), /拉黑/);
+    assert.throws(() => social.sendDirectMessage(user.id, id, 'blocked'), /拉黑/);
+    assert.throws(() => social.sendDirectMessage(user.id, id, '', file), /拉黑/);
+  }
+  assert.equal(social.directMessages(b.id, id).length, historyCount);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM chat_attachments').get().n, fileCount);
+  toggleBlock(b.id, a.id);
+  assert.equal(toggleBlock(a.id, b.id), 'unblocked');
+  assert.equal(isBlocked(a.id, b.id), true, "one user cannot remove the other user's block");
+  toggleBlock(b.id, a.id);
+  assert.doesNotThrow(() => social.assertDirectSendAccess(a.id, id));
+});
+
+test('shared message validation keeps upstream sensitive-word protection for DMs and groups', () => {
+  const id = social.startConversation(a.id, b.username);
+  const group = social.createGroup(a.id, '合并验证', '');
+  for (const content of ['代开发票', '代 开 发 票']) {
+    assert.throws(() => social.sendDirectMessage(a.id, id, content), /敏感词/);
+    assert.throws(() => social.sendGroupMessage(a.id, group, content), /敏感词/);
+  }
+  assert.equal(social.messageContent('讨论 Markdown 与 $x^2$'), '讨论 Markdown 与 $x^2$');
+});
+
+test('DM cooldown expires at fifteen seconds and remains independent for each user', () => {
+  const { allowAction } = require('../lib/ratelimit.ts');
+  const originalNow = Date.now;
+  let at = 200000;
+  Date.now = () => at;
+  try {
+    assert.equal(allowAction('merge-dm:a', 15000).ok, true);
+    assert.deepEqual(allowAction('merge-dm:a', 15000), { ok: false, retryAfterSec: 15 });
+    assert.equal(allowAction('merge-dm:b', 15000).ok, true);
+    at += 14999;
+    assert.deepEqual(allowAction('merge-dm:a', 15000), { ok: false, retryAfterSec: 1 });
+    at += 1;
+    assert.equal(allowAction('merge-dm:a', 15000).ok, true);
+  } finally { Date.now = originalNow; }
+});
+
+test('upstream follow counts distinguish follower, following and viewer state', () => {
+  const { followStats } = require('../lib/queries.ts');
+  db.prepare("INSERT INTO follows (follower_id, following_id) VALUES (?, ?)").run(a.id, b.id);
+  assert.equal(followStats(b.id, a.id).isFollowing, true);
+  assert.equal(followStats(b.id).followers, 1);
+  assert.equal(followStats(a.id).following, 1);
+  db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').run(a.id, b.id);
+});

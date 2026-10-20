@@ -90,3 +90,14 @@ The final sparse inbox/group screens deliberately show their actual rows; they a
 ## Browser verification prerequisites
 
 The optional browser and visual scripts require Chrome and the locally installed `design-taste-frontend` skill at `.agents/skills/design-taste-frontend/`. That local tool bundle is not vendored in this change. The application build and `npm test` do not require the skill.
+
+
+## Upstream synchronization — October 20, 2026
+
+Merged upstream `1c8ed76`, retaining its follow tables/actions/notifications, avatar error fallback, guest-only announcement feed and board restrictions, reply/like/view sorting, sensitive-word filtering, posting cooldowns, login lockout, image metadata stripping and registration privacy notice. The shared editor already supplies the upstream thread/reply preview controls.
+
+Follow/unfollow uses named SVG actions beside the profile's DM action. Both participants can block or unblock their own relationship in the canonical inbox; either person's block prevents new text and file-only messages in both directions, including upload preflight, while leaving history readable. Private messages retain upstream's fifteen-second per-sender cooldown. Existing legacy DM migrations and redirects remain in place.
+
+Validation after conflict resolution: production build and ESLint passed; **19 tests** and **14 browser scenarios** passed. Browser checks include moderation rejection, cooldown draft preservation, blocking/unblocking from both sides, follow notifications, guest restrictions and the original editor/file flows. `node tests/design.mjs --sync` inspected the updated home, profile and DM screens at 390, 768 and 1440 px with **0 FAIL**. All 18 inspector images were opened.
+
+Visual critique, sync round: seen in one second, campus discussions, a classmate's profile and a private conversation with familiar controls. Idea, layout and direction remain Accent ladder (seed 1780879093); no redraw. Live controls now include follow/unfollow, blocking and additional feed sorts. Scores remain design 7.5, usability 8.5, creativity 6.5, content 8.0 (overall 7.65). No caps apply beyond the existing familiar-interface creativity limit. The two inspector warnings are retained with reasons: a full-width profile list keeps space between its topic titles and right-aligned reply counts; DM timestamps and editor hints use small secondary text while message prose remains larger. The phone profile wraps metadata naturally, feed sorts scroll locally, and the DM action row stays compact. Source lint has zero failures; its `unlock` copy warnings refer to an SVG icon identifier, and its shadow/monospace warnings are the previously documented reset, floating emoji menu and student-ID input. No new sample content or external assets were added.
