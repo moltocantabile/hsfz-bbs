@@ -18,6 +18,7 @@ try {
   const user = db.prepare("SELECT id FROM users WHERE username='chen2026'").get().id;
   const friend = db.prepare("SELECT id FROM users WHERE username='su2027'").get().id;
   if (process.argv.includes('--icons')) db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(user);
+  if (process.argv.includes('--recommendations') || process.argv.includes('--bge')) db.prepare('INSERT OR REPLACE INTO user_experiments(user_id,recommendations_enabled) VALUES(?,1)').run(user);
   const token = randomBytes(32).toString('hex');
   db.prepare("INSERT INTO sessions(token,user_id,created_at) VALUES (?,?,datetime('now'))").run(token,user);
   const group = Number(db.prepare("INSERT INTO community_groups(name,description,owner_id,created_at) VALUES ('华附数学讨论','一起研究有趣的问题，分享解题思路。',?,datetime('now'))").run(user).lastInsertRowid);
@@ -40,7 +41,11 @@ try {
     upstream.on('error', () => { res.writeHead(502);res.end(); }); req.pipe(upstream);
   });
   await new Promise(r=>proxy.listen(3104,'127.0.0.1',r));
-  const targets = process.argv.includes('--sync')
+  const targets = process.argv.includes('--bge')
+    ? [['bge-experimental','/experimental'], ['bge-home','/'], ['bge-new','/new?board=study']]
+    : process.argv.includes('--recommendations')
+    ? [['recommendations-home','/'], ['recommendations-new','/new?board=study']]
+    : process.argv.includes('--sync')
     ? [['sync-home', '/'], ['sync-profile', '/u/su2027'], ['sync-direct', `/inbox/${conversation}`]]
     : process.argv.includes('--icons')
     ? [['icons-group', `/groups/${group}`], ['icons-thread', `/t/${thread}#reply-form`], ['icons-admin', '/admin?tab=threads'], ['icons-settings', '/settings']]

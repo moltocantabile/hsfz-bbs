@@ -14,12 +14,34 @@ export function NewThreadForm({
   boards,
   defaultBoardId,
   isAdmin,
+  recommendationEnabled,
 }: {
   boards: BoardRow[];
   defaultBoardId?: number;
   isAdmin: boolean;
+  recommendationEnabled: boolean;
 }) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(createThreadAction, null);
+  const [preparing, setPreparing] = useState(false);
+  const [encodingNotice, setEncodingNotice] = useState("");
+  const cachedVector = useRef<{text:string;encoded:string;version:string} | null>(null);
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(async (previous, form) => {
+    const title = String(form.get("title") ?? ""), body = String(form.get("content") ?? "");
+    // Server validation remains authoritative; do not download a model for an empty draft.
+    if (recommendationEnabled && title.trim().length>=2 && body.trim().length>=2) {
+      setPreparing(true);setEncodingNotice("");
+      try {
+        const text = `${title.trim()}\n${body.trim()}`;
+        if (cachedVector.current?.text !== text) {
+          const { encodePost } = await import("@/lib/recommendation/encoder");
+          cachedVector.current = {text,...await encodePost(title,body)};
+        }
+        form.set("post_vec",cachedVector.current.encoded);
+        form.set("vec_model_version",cachedVector.current.version);
+      } catch { setEncodingNotice("推荐准备暂不可用，帖子仍会正常发布。"); }
+      finally { setPreparing(false); }
+    }
+    return createThreadAction(previous,form);
+  }, null);
   const imageRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
@@ -41,6 +63,7 @@ export function NewThreadForm({
 
   return (
     <form action={formAction} className="space-y-4 p-4">
+      {(preparing || encodingNotice) && <p className="text-sm text-muted" role="status">{preparing ? "正在准备发布，首次使用需要下载推荐组件…" : encodingNotice}</p>}
       {state && !state.ok && (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
           {state.message}
@@ -51,6 +74,7 @@ export function NewThreadForm({
           <label className="mb-1 block text-sm font-medium">选择大类</label>
           <select
             value={cat}
+            disabled={pending}
             required
             className="input"
             onChange={(e) => changeCat(e.target.value)}
@@ -71,7 +95,7 @@ export function NewThreadForm({
             name="board_id"
             value={boardId}
             required
-            disabled={!cat}
+            disabled={!cat || pending}
             className="input disabled:opacity-50"
             onChange={(e) => setBoardId(e.target.value)}
           >
@@ -92,6 +116,7 @@ export function NewThreadForm({
         <label className="mb-1 block text-sm font-medium">标题</label>
         <input
           name="title"
+          disabled={pending}
           value={title}
           onChange={event => setTitle(event.target.value)}
           required
@@ -108,7 +133,7 @@ export function NewThreadForm({
       </div>
       {isConfession && (
         <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-soft/60 px-3 py-2.5 text-sm">
-          <input type="checkbox" name="anonymous" className="h-4 w-4 accent-[#0e7490]" />
+          <input type="checkbox" name="anonymous" disabled={pending} className="h-4 w-4 accent-[#0e7490]" />
           <span>
             匿名发表
             <span className="ml-1 text-xs text-muted">（展示为「匿名同学」；管理员仍可查看作者以维护秩序）</span>

@@ -28,6 +28,8 @@ const paths = {
   bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
   menu: "M4 6h16M4 12h16M4 18h16",
   plus: "M12 4v16M4 12h16",
+  'toggle-off': "M16 6H8a6 6 0 0 0 0 12h8a6 6 0 0 0 0-12ZM11 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+  'toggle-on': "M16 6H8a6 6 0 0 0 0 12h8a6 6 0 0 0 0-12ZM19 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
   spinner: "M21 12a9 9 0 1 1-9-9",
 } as const;
 export type ActionIconName = keyof typeof paths;

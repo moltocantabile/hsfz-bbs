@@ -51,3 +51,12 @@ deploy/
 
 # Design inspection output (screenshots, browser measurements)
 .taste-skill/
+
+# Generated browser ONNX worker/runtime (npm run prebuild or predev)
+public/recommendation-runtime/
+
+# Local agent tools and offline model preparation (not web runtime)
+/.agents/
+/skills-lock.json
+/.local-tools/
+/scripts/quantize-*.py

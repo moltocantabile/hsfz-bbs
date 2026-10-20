@@ -20,6 +20,7 @@ export default async function Header() {
     { href: "/groups", label: "兴趣小组", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M20 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8" },
     { href: "/inbox", label: "私信", count: directUnread, icon: "M3 5h18v14H3z M3 5l9 7 9-7" },
     { href: "/messages", label: "通知与工单", count: unread, icon: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9 M10 21h4" },
+    ...(user ? [{ href: "/experimental", label: "实验功能", icon: "M9 3h6m-5 0v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8" }] : []),
     ...(user?.role === "admin" ? [{ href: "/admin", label: "管理后台", count: openTickets, icon: "M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7l8-4Z" }] : []),
   ];
 

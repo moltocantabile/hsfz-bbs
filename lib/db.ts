@@ -1,3 +1,4 @@
+import { initializeRecommendations, loadRecommendationExtension } from "./recommendation/schema";
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
 import fs from "node:fs";
@@ -13,6 +14,7 @@ export { UPLOAD_DIR };
 const g = globalThis as unknown as { __bbsDb?: Database.Database };
 export const db = g.__bbsDb ?? new Database(path.join(DATA_DIR, "bbs.db"));
 g.__bbsDb = db;
+loadRecommendationExtension(db);
 
 db.pragma("journal_mode = WAL");
 
@@ -220,6 +222,7 @@ CREATE INDEX IF NOT EXISTS chat_attachments_expiry ON chat_attachments(expires_a
   }
 });
 initializeSchema.immediate();
+initializeRecommendations(db);
 
 // Add attachment references without rewriting existing conversations.
 for (const table of ["direct_messages", "group_messages"]) {

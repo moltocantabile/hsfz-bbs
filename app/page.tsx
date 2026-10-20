@@ -1,3 +1,5 @@
+import { recommendationsEnabled } from "@/lib/experiments";
+import { RecommendedFeed } from "@/components/recommendation/RecommendedFeed";
 import { IconLink } from "@/components/IconAction";
 import { ScrollRow } from "@/components/ScrollRow";
 import Link from "next/link";
@@ -9,9 +11,10 @@ import { groups } from "@/lib/social";
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ feed?: string; sort?: string }> }) {
   const user = await getCurrentUser();
   const { feed, sort } = await searchParams;
-  const sorts = [["latest", "最新讨论"], ["reply", "最多回复"], ["likes", "最多点赞"], ["views", "最多浏览"], ["hot", "大家在聊"], ["featured", "精华收藏"]];
+  const enabled = !!user && recommendationsEnabled(user.id);
+  const sorts = [...(enabled ? [["recommended", "为你推荐"]] : []), ["latest", "最新讨论"], ["reply", "最多回复"], ["likes", "最多点赞"], ["views", "最多浏览"], ["hot", "大家在聊"], ["featured", "精华收藏"]];
   const requested = sort ?? feed;
-  const active = sorts.some(([key]) => key === requested) ? requested! : "latest";
+  const active = sorts.some(([key]) => key === requested) ? requested! : enabled ? "recommended" : "latest";
   const threads = !user ? announcementThreads(5) : active === "hot" ? hotThreads(25) : active === "featured" ? featuredThreads(25) : threadsSorted(active, 25);
   const boards = allBoards();
   const stats = siteStats();
@@ -23,9 +26,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     {/* Canvas = flexible discussion column + 280px rail + one 24px gutter. */}
     <div className="forum-grid">
       <section className="discussion-column" aria-label="校园帖子">
-        <div className="feed-toolbar">{user ? <ScrollRow as="nav" className="feed-tabs" aria-label="帖子排序">{sorts.map(([key, label]) => <Link key={key} href={key === "latest" ? "/" : `/?sort=${key}`} aria-current={active === key ? "page" : undefined} className={active === key ? "selected" : ""}>{label}</Link>)}</ScrollRow> : <h2 className="font-semibold">站务公告</h2>}<span className="text-xs text-muted">{threads.length} 个主题</span></div>
+        <div className="feed-toolbar">{user ? <ScrollRow as="nav" className="feed-tabs" aria-label="帖子排序">{sorts.map(([key, label]) => <Link key={key} href={key === (enabled ? "recommended" : "latest") ? "/" : `/?sort=${key}`} aria-current={active === key ? "page" : undefined} className={active === key ? "selected" : ""}>{label}</Link>)}</ScrollRow> : <h2 className="font-semibold">站务公告</h2>}<span className="text-xs text-muted">{threads.length} 个主题</span></div>
         {!user && <div className="card mb-4 p-5"><p className="text-sm text-muted">论坛内容仅对注册同学开放。登录后可浏览全部帖子与回复。</p><div className="mt-4 flex gap-2"><IconLink href="/login" className="btn-primary" icon="login" label="登录" /><IconLink href="/register" className="btn" icon="user-plus" label="注册" /></div></div>}
-        <div className="thread-sheet"><ThreadList threads={threads} /></div>
+        <div className="thread-sheet">{user && active === "recommended" ? <RecommendedFeed userId={user.id} boards={boards.map(({id,name})=>({id,name}))} fallback={<ThreadList threads={threads} />} /> : <ThreadList threads={threads} />}</div>
         <p className="feed-end">更多故事，正在各个板块发生。<Link href="/boards">去逛逛 ↗</Link></p>
       </section>
       <aside className="community-rail">
