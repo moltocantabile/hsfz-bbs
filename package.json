@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/editor.test.cjs"
+    "test": "node --test tests/editor.test.cjs tests/social.test.cjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
