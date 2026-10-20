@@ -22,18 +22,17 @@ export default async function MessagesPage() {
 
   const notifications = recentNotifications(user.id);
   markNotificationsRead(user.id);
-  const typeIcon: Record<string, string> = { reply: "💬", quote: "❝", mention: "📢", like: "❤️" };
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <h1 className="text-lg font-semibold">📬 我的消息 · 联系管理员</h1>
+      <h1 className="text-lg font-semibold">通知与工单</h1>
       <p className="text-sm text-muted">
         在这里你可以给管理员提交工单：申请专属头衔、提出改进建议、举报内容或其他问题，管理员会逐条回复。
       </p>
 
       {notifications.length > 0 && (
         <div className="card">
-          <div className="card-header">🔔 互动通知（{notifications.length}）</div>
+          <div className="card-header">互动通知（{notifications.length}）</div>
           <ul className="divide-y divide-line">
             {notifications.map((n) => (
               <li key={n.id}>
@@ -41,7 +40,6 @@ export default async function MessagesPage() {
                   href={n.thread_id ? `/t/${n.thread_id}${n.reply_id ? `#reply-${n.reply_id}` : ""}` : "/"}
                   className="flex items-start gap-3 px-4 py-3 hover:bg-soft/60"
                 >
-                  <span className="mt-0.5 shrink-0 text-lg">{typeIcon[n.type] ?? "🔔"}</span>
                   <span className="min-w-0 flex-1">
                     <span className={`block text-sm ${n.is_read === 0 ? "font-semibold text-ink" : "text-muted"}`}>
                       {n.is_read === 0 && (
@@ -59,7 +57,7 @@ export default async function MessagesPage() {
       )}
 
       <details className="card" open={tickets.length === 0}>
-        <summary className="card-header cursor-pointer select-none">✉️ 发起新工单</summary>
+        <summary className="card-header cursor-pointer select-none">发起新工单</summary>
         <NewTicketForm />
       </details>
 

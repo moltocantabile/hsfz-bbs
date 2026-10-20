@@ -1,0 +1,15 @@
+# Icon-first actions
+
+Buttons use a familiar icon when it clearly expresses the action. `ActionIcon.tsx` provides the shared 18 px SVG stroke system; `IconAction.tsx` provides named button/link controls. `SubmitButton` accepts an explicit icon, optional selected state and numeric count. Labels are supplied at the call site; they are not guessed from translated text.
+
+Common actions now use icons: compose/send, search, upload/download, save, password changes, login/register/logout, refresh, create/join/leave groups, open a DM, preview/edit, like/favorite, approve/reject, pin/feature, delete and remove attachments. The menu uses a hamburger. Likes retain their numeric count, and pressed states remain visible and available through `aria-pressed`.
+
+Every icon action has an accessible name and native tooltip. SVGs are decorative to assistive technology. Submission replaces the action with a spinner, disables the button and retains a named busy state; chat compression/upload progress and errors remain explicit beside the editor. Hit areas are at least 38 px on desktop and 44 px on phones. Editor tools continue to scroll in one line with mode switches pinned beside them. System-provided file chooser controls retain their platform behavior.
+
+Visible text remains for actions whose whole function cannot be expressed by one clear icon: changing administrator privileges, granting a title and replying in one operation, replying and marking a ticket handled, and closing a ticket without replying. The armed second step of a destructive action keeps explicit confirmation wording; its first icon click prevents form submission. Navigation/content tabs retain their meaningful names.
+
+The existing school-green Accent ladder direction and DM Sans are unchanged. No image assets or dependencies were added. Prior screenshots are in `.taste-skill/final-editor-*`; current icon screenshots are in `.taste-skill/final-icons-{group,thread,admin,settings}`. Functional screenshots are in `.taste-skill/flows/`.
+
+Validation: build, ESLint, 14 backend/editor tests, and the browser flow suite covering icon names/tooltips, actual send/like/favorite clicks, two-step delete, attachments, auth forms and narrow layouts. The design inspector runs with `node tests/design.mjs --icons` at 1440, 768 and 390 px; math font exceptions apply to the thread view. The source lint warning on the `unlock` SVG identifier is a marketing-copy false positive, not displayed copy.
+
+Final checks: **14 tests / 12 browser scenarios passed**. Visual inspection has zero failures at all three widths. Group and thread views each retain the existing small-metadata warning; admin has two warnings (sparse wide list space and real selected action buttons classified as icon chips); settings has its existing equal-height avatar-panel whitespace warning. Reviewed the fold and full-page contact sheets for all four screens. These warnings do not indicate hidden controls or lost functionality; focus, mobile scrolling and accessible action names are covered by the browser assertions.

@@ -40,9 +40,9 @@ export function ForgotForm() {
         <label className="mb-1 block text-sm font-medium">确认新密码</label>
         <input name="password2" type="password" required minLength={6} className="input" placeholder="再输入一次" />
       </div>
-      <SubmitButton className="btn-primary w-full justify-center" pendingText="提交中…">
+      <div className="flex justify-end"><SubmitButton className="btn-primary" icon="key" pendingText="提交中…">
         重置密码
-      </SubmitButton>
+      </SubmitButton></div>
     </form>
   );
 }

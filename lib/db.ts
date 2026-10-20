@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fmtDate } from "./format";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_DIR = process.env.HSFZ_DATA_DIR || path.join(process.cwd(), "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -124,7 +124,78 @@ CREATE TABLE IF NOT EXISTS whitelist (
   used_by INTEGER DEFAULT 0,
   created_at TEXT DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS direct_conversations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_low INTEGER NOT NULL REFERENCES users(id),
+  user_high INTEGER NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL,
+  CHECK (user_low < user_high),
+  UNIQUE (user_low, user_high)
+);
+CREATE TABLE IF NOT EXISTS direct_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id INTEGER NOT NULL REFERENCES direct_conversations(id),
+  sender_id INTEGER NOT NULL REFERENCES users(id),
+  content TEXT NOT NULL,
+  attachment_id TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS direct_messages_conversation ON direct_messages(conversation_id, id);
+CREATE TABLE IF NOT EXISTS direct_reads (
+  conversation_id INTEGER NOT NULL REFERENCES direct_conversations(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  last_message_id INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (conversation_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS community_groups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  owner_id INTEGER NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS group_members (
+  group_id INTEGER NOT NULL REFERENCES community_groups(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  joined_at TEXT NOT NULL,
+  last_message_id INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (group_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS group_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  group_id INTEGER NOT NULL REFERENCES community_groups(id),
+  sender_id INTEGER NOT NULL REFERENCES users(id),
+  content TEXT NOT NULL,
+  attachment_id TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS group_messages_group ON group_messages(group_id, id);
+CREATE TABLE IF NOT EXISTS chat_attachments (
+  id TEXT PRIMARY KEY,
+  filename TEXT NOT NULL,
+  original_size INTEGER NOT NULL,
+  compressed_size INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  payload BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chat_attachments_expiry ON chat_attachments(expires_at);
 `);
+
+// Add attachment references without rewriting existing conversations.
+for (const table of ["direct_messages", "group_messages"]) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!columns.some(column => column.name === "attachment_id")) {
+    try { db.exec(`ALTER TABLE ${table} ADD COLUMN attachment_id TEXT NOT NULL DEFAULT ''`); }
+    catch (error) {
+      // Another worker may have completed the same migration while this worker waited.
+      const current = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+      if (!current.some(column => column.name === "attachment_id")) throw error;
+    }
+  }
+  db.exec(`CREATE INDEX IF NOT EXISTS ${table}_attachment ON ${table}(attachment_id) WHERE attachment_id != ''`);
+}
+// Zero freed BLOB pages; expired uploads should not remain in SQLite's free list.
+db.pragma("secure_delete = ON");
 
 // 早期数据库无 grade 列，补一次迁移
 try {
@@ -625,7 +696,6 @@ function seed() {
   const insWater = db.transaction(() => {
     for (const { id, add } of need) {
       for (let k = 0; k < add; k++) {
-        const at = ts(0, 0); // 占位
         const minutesAgo = spread - ((idx + 1) * spread) / (totalNeed + 1);
         const t = new Date(NOW - minutesAgo * 60000);
         insReply.run(waterId, id, waterMsgs[idx % waterMsgs.length], fmtDate(t));

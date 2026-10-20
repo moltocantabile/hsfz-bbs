@@ -48,3 +48,6 @@ public/uploads/*
 .zcode/
 DEPLOY.md
 deploy/
+
+# Design inspection output (screenshots, browser measurements)
+.taste-skill/

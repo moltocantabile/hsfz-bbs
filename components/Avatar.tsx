@@ -1,5 +1,3 @@
-import { avatarColor } from "@/lib/format";
-
 export function Avatar({
   user,
   size = 40,
@@ -24,7 +22,7 @@ export function Avatar({
   return (
     <span
       style={style}
-      className={`inline-flex shrink-0 select-none items-center justify-center rounded-md font-semibold text-white ${avatarColor(user.username)} ${className}`}
+      className={`inline-flex shrink-0 select-none items-center justify-center rounded-md font-medium text-brand bg-soft ${className}`}
       aria-hidden
     >
       <span style={{ fontSize: Math.round(size * 0.45), lineHeight: 1 }}>

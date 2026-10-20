@@ -33,9 +33,9 @@ export function LoginForm() {
         <label className="mb-1 block text-sm font-medium">密码</label>
         <input name="password" type="password" required className="input" placeholder="••••••••" />
       </div>
-      <SubmitButton className="btn-primary w-full justify-center" pendingText="登录中…">
+      <div className="flex justify-end"><SubmitButton className="btn-primary" icon="login" pendingText="登录中…">
         登录
-      </SubmitButton>
+      </SubmitButton></div>
       <p className="text-center text-sm text-muted">
         还没有账号？{" "}
         <Link href="/register" className="link font-medium">
@@ -117,9 +117,9 @@ export function RegisterForm() {
         <label className="mb-1 block text-sm font-medium">确认密码</label>
         <input name="password2" type="password" required minLength={6} className="input" placeholder="再输入一次" />
       </div>
-      <SubmitButton className="btn-primary w-full justify-center" pendingText="提交中…">
+      <div className="flex justify-end"><SubmitButton className="btn-primary" icon="user-plus" pendingText="提交中…">
         提交注册申请
-      </SubmitButton>
+      </SubmitButton></div>
       <p className="text-center text-sm text-muted">
         已有账号？{" "}
         <Link href="/login" className="link font-medium">

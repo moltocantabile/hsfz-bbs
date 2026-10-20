@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test tests/social.test.cjs",
+    "test:browser": "npm run build && node tests/browser.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

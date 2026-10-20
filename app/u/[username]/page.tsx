@@ -1,3 +1,5 @@
+import { IconLink } from "@/components/IconAction";
+import { ScrollRow } from "@/components/ScrollRow";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -47,7 +49,7 @@ export default async function UserProfilePage({
   const favorites = isSelf ? userFavorites(profile.id) : [];
   const likes = likesReceived(profile.id);
 
-  const TabLink = ({ name, label, count }: { name: string; label: string; count?: number }) => (
+  const tabLink = ({ name, label, count }: { name: string; label: string; count?: number }) => (
     <Link
       href={`/u/${profile.username}?tab=${name}`}
       className={`-mb-px border-b-2 px-1 pb-2 text-sm font-medium ${
@@ -74,6 +76,7 @@ export default async function UserProfilePage({
               @{profile.username}
               {profile.grade && ` · ${profile.grade}`}
             </p>
+            {!isSelf && me && profile.status === "approved" && !profile.banned && <IconLink href={`/inbox?to=${encodeURIComponent(profile.username)}`} className="btn mt-3" icon="message" label="发送私信" />}
             {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
               <span className="text-muted">
@@ -100,7 +103,7 @@ export default async function UserProfilePage({
                 )}
               </div>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-soft">
-                <div className="h-full rounded-full bg-gradient-to-r from-[#0e7490] to-[#148f77]" style={{ width: `${progress}%` }} />
+                <div className="h-full rounded-full bg-brand" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
@@ -108,11 +111,11 @@ export default async function UserProfilePage({
       </div>
 
       <div className="card">
-        <div className="flex gap-5 border-b border-line px-4 pt-3">
-          <TabLink name="threads" label="帖子" count={threads.length} />
-          <TabLink name="replies" label="回复" count={replies.length} />
-          {isSelf && <TabLink name="favorites" label="我的收藏" count={favorites.length} />}
-        </div>
+        <ScrollRow as="nav" aria-label="个人主页内容" className="gap-5 border-b border-line px-4 pt-3">
+          {tabLink({ name: "threads", label: "帖子", count: threads.length })}
+          {tabLink({ name: "replies", label: "回复", count: replies.length })}
+          {isSelf && tabLink({ name: "favorites", label: "我的收藏", count: favorites.length })}
+        </ScrollRow>
 
         {activeTab === "threads" && <ThreadList threads={threads} />}
         {activeTab === "favorites" && <ThreadList threads={favorites} />}
