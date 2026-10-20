@@ -17,3 +17,13 @@ export function toggleBlock(userId: number, targetId: number): "blocked" | "unbl
   db.prepare("INSERT INTO blocks (user_id, blocked_id, created_at) VALUES (?, ?, datetime('now','localtime'))").run(userId, targetId);
   return "blocked";
 }
+
+/** Preserve the existing header/messages unread API after the conversation migration. */
+export function unreadDmCount(userId: number): number {
+  return (db.prepare(`SELECT COUNT(*) AS n FROM direct_messages m
+    JOIN direct_conversations c ON c.id = m.conversation_id
+    WHERE (c.user_low = ? OR c.user_high = ?) AND m.sender_id != ?
+      AND m.id > COALESCE((SELECT last_message_id FROM direct_reads
+        WHERE conversation_id = c.id AND user_id = ?), 0)`)
+    .get(userId, userId, userId, userId) as { n: number }).n;
+}

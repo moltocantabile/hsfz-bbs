@@ -1,8 +1,7 @@
-import { IconLink } from "./IconAction";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { unreadTicketCount, openTicketCount, unreadNotificationCount } from "@/lib/queries";
-import { unreadDirectCount as unreadDmCount } from "@/lib/social";
+import { unreadDmCount } from "@/lib/dm";
 import { Avatar } from "./Avatar";
 import SiteBadge from "./SiteBadge";
 import ThemeToggle from "./ThemeToggle";
@@ -68,7 +67,6 @@ export default async function Header() {
           </div>
         </form>
 
-        <IconLink href="/groups" icon="group-plus" label="兴趣小组" className="shrink-0 rounded hover:bg-white/15" />
         <ThemeToggle />
 
         {user ? (

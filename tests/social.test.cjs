@@ -36,6 +36,7 @@ test('DM authorization covers reads, sends, and read receipts; unread counts are
   const first = social.sendDirectMessage(a.id, id, 'hello **friend**');
   assert.equal(social.directMessages(b.id, id)[0].content, 'hello **friend**');
   assert.equal(social.unreadDirectCount(b.id), 1);
+  assert.equal(require('../lib/dm.ts').unreadDmCount(b.id), 1);
   assert.equal(social.conversationFor(id, c.id), undefined);
   assert.throws(() => social.directMessages(c.id, id), social.SocialError);
   assert.throws(() => social.sendDirectMessage(c.id, id, 'injected'), social.SocialError);
