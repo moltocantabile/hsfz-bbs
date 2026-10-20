@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { recentNotifications, markNotificationsRead } from "@/lib/notify";
-import { unreadDmCount } from "@/lib/dm";
+import { unreadDirectCount as unreadDmCount } from "@/lib/social";
 import { requireUser } from "@/lib/auth";
 import { NewTicketForm } from "@/components/TicketForms";
 import { timeAgo, ticketCategoryName, TICKET_STATUS } from "@/lib/format";
