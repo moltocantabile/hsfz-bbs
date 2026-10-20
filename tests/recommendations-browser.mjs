@@ -35,6 +35,16 @@ try{
  assert.equal(await page.eval(()=>!!document.querySelector('.recommended-feed')),false);
  assert.equal((await fetch(origin+'/api/recommendations',{headers:cookie})).status,403);
  await page.goto(origin+'/experimental');
+ for (const width of [320,390,768,1440]) {
+  await page.setViewport({width,height:900,mobile:width<640});
+  const switchSize=await page.eval(()=>{
+   const button=document.querySelector('button[role="switch"]');button.focus();
+   const target=button.getBoundingClientRect(),track=button.querySelector('.experiment-switch-track').getBoundingClientRect();
+   return {width:target.width,height:target.height,trackWidth:track.width,trackHeight:track.height,focused:document.activeElement===button,outline:getComputedStyle(button).outlineStyle,fits:document.documentElement.scrollWidth<=innerWidth};
+  });
+  assert.ok(switchSize.width>=60&&switchSize.height>=44&&switchSize.trackWidth>=52&&switchSize.trackHeight>=30);
+  assert.ok(switchSize.focused&&switchSize.outline!=='none'&&switchSize.fits);
+ }
  await page.setViewport({width:390,height:360,mobile:true});
  await page.eval(()=>document.querySelector('.mobile-menu summary').click());
  assert.ok(await page.eval(()=>{
