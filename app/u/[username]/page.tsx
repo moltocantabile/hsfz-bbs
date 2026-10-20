@@ -82,7 +82,7 @@ export default async function UserProfilePage({
             </p>
             <div className="mt-3 flex items-center gap-2">
             {!isSelf && me && <form action={toggleFollowAction}><input type="hidden" name="user_id" value={profile.id} /><SubmitButton icon={fstats.isFollowing ? "user-minus" : "user-plus"} active={fstats.isFollowing} className={fstats.isFollowing ? "btn" : "btn-primary"}>{fstats.isFollowing ? "取消关注" : "关注"}</SubmitButton></form>}
-            {!isSelf && me && profile.status === "approved" && !profile.banned && <IconLink href={`/inbox?to=${encodeURIComponent(profile.username)}`} className="btn" icon="message" label="发送私信" />}
+            {!isSelf && me && profile.status === "approved" && !profile.banned && <IconLink href={`/dm/${encodeURIComponent(profile.username)}`} className="btn" icon="message" label="发送私信" />}
             </div>
             {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
