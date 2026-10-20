@@ -14,7 +14,7 @@ Follow-up: [temporary file transfers in DMs and groups](file-transfers.md) adds 
 - Threads and replies already supported GFM Markdown and inline/display LaTeX. That support is retained in a shared renderer and is now available in messages and writing previews. Mentions are parsed only in prose, so code, math, existing links and email addresses remain intact. Raw HTML is not executed; KaTeX runs without trusted commands.
 - HTTP(S) links in thread bodies, replies and messages render as cards containing the author's link text, domain and path. Bare URLs work too. Cards open safely in another tab. They do not fetch remote Open Graph metadata or thumbnails. Mentions, relative navigation and email links retain their inline behavior.
 
-The schema additions in `lib/db.ts` are additive and idempotent. Runtime data defaults to `data/bbs.db`; `HSFZ_DATA_DIR` can select another directory. Tests always use disposable directories and remove them afterward.
+Schema initialization in `lib/db.ts` is idempotent. Databases using the upstream recipient/read-flag DM schema are upgraded in one transaction, preserving message IDs, text, timestamps, conversation pairs and read markers. Legacy `/dm` and `/dm/[username]` links redirect to the shared inbox and conversation screens. Runtime data defaults to `data/bbs.db`; `HSFZ_DATA_DIR` can select another directory. Tests always use disposable directories and remove them afterward.
 
 ## Design direction
 

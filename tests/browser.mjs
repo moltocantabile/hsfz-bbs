@@ -110,6 +110,10 @@ try {
   await submit('form:has(input[name=username])');
   await waitFor(() => page.eval(() => /\/inbox\/\d+$/.test(location.pathname)), 'open DM');
   const conversationPath = await page.eval(() => location.pathname);
+  await page.goto(`${origin}/dm`);
+  await waitFor(() => page.eval(() => location.pathname === '/inbox'), 'legacy inbox redirect');
+  await page.goto(`${origin}/dm/${bob.username}`);
+  await waitFor(() => page.eval(path => location.pathname === path, conversationPath), 'legacy conversation redirect');
   await checkCompactEditor('direct');
   await fill('textarea[name=content]', '格式测试');
   await page.eval(() => { const el = document.querySelector('textarea[name=content]'); el.focus(); el.setSelectionRange(0, 4); });

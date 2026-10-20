@@ -14,7 +14,7 @@ Sending locks the editor and upload controls. Successful messages/replies clear 
 ## Verification
 
 - `npm run build` and `npm run lint`.
-- `npm test`: 14 tests, including selection wrapping/toggling, multiline list boundaries, replaceable link destinations, math and code fences.
+- `npm test`: 15 tests, including selection wrapping/toggling, multiline list boundaries, replaceable link destinations, math and code fences.
 - `node tests/browser.mjs`: 12 complete scenarios, including editor tools/shortcuts/history, preview refresh, picker activation, image removal/retry, validation draft retention, published math and compressed file upload/download in both chats. Responsive checks cover all four editors, admin/profile/feed tabs and thread moderation actions at 320, 390, 768 and 1440 px, including keyboard focus revealing offscreen controls.
 - `node tests/design.mjs --editor`: four screens at 1440, 768 and 390 px. Each screen has **0 FAIL / 1 WARN**. The remaining warning concerns small metadata, toolbar tab labels and secondary syntax hints; editing text is 14 px on desktop and 16 px on phones. KaTeX math font exceptions apply only to the thread reading view.
 

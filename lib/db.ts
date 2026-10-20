@@ -16,7 +16,12 @@ g.__bbsDb = db;
 
 db.pragma("journal_mode = WAL");
 
-db.exec(`
+// Upgrade the upstream recipient/is_read schema atomically before creating indexes.
+const initializeSchema = db.transaction(() => {
+  const columns = db.prepare("PRAGMA table_info(direct_messages)").all() as { name: string }[];
+  const legacy = columns.some(column => column.name === "recipient_id") && !columns.some(column => column.name === "conversation_id");
+  if (legacy) db.exec("ALTER TABLE direct_messages RENAME TO direct_messages_legacy_upgrade");
+  db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
@@ -180,6 +185,27 @@ CREATE TABLE IF NOT EXISTS chat_attachments (
 );
 CREATE INDEX IF NOT EXISTS chat_attachments_expiry ON chat_attachments(expires_at);
 `);
+  if (legacy) {
+    db.exec(`
+      INSERT INTO direct_conversations (user_low, user_high, created_at)
+      SELECT MIN(sender_id, recipient_id), MAX(sender_id, recipient_id), MIN(created_at)
+      FROM direct_messages_legacy_upgrade
+      GROUP BY MIN(sender_id, recipient_id), MAX(sender_id, recipient_id);
+      INSERT INTO direct_messages (id, conversation_id, sender_id, content, created_at)
+      SELECT m.id, c.id, m.sender_id, m.content, m.created_at
+      FROM direct_messages_legacy_upgrade m JOIN direct_conversations c
+        ON c.user_low = MIN(m.sender_id, m.recipient_id) AND c.user_high = MAX(m.sender_id, m.recipient_id)
+      ORDER BY m.id;
+      INSERT INTO direct_reads (conversation_id, user_id, last_message_id)
+      SELECT c.id, m.recipient_id, MAX(m.id)
+      FROM direct_messages_legacy_upgrade m JOIN direct_conversations c
+        ON c.user_low = MIN(m.sender_id, m.recipient_id) AND c.user_high = MAX(m.sender_id, m.recipient_id)
+      WHERE m.is_read = 1 GROUP BY c.id, m.recipient_id;
+      DROP TABLE direct_messages_legacy_upgrade;
+    `);
+  }
+});
+initializeSchema.immediate();
 
 // Add attachment references without rewriting existing conversations.
 for (const table of ["direct_messages", "group_messages"]) {

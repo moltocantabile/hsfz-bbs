@@ -236,3 +236,53 @@ test('editor inserts replaceable link URLs and block math/code without swallowin
   assert.equal(math.value.slice(math.start, math.end), 'x^2');
   assert.equal(edit({ value: 'const x = 1;\n```', start: 0, end: 16 }, 'code').value, '````\nconst x = 1;\n```\n````\n');
 });
+
+
+test('upstream DM schema migrates atomically with message IDs, history and read receipts intact', async () => {
+  const { spawnSync } = require('node:child_process');
+  const legacyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hsfz-legacy-dm-'));
+  const legacyPath = path.join(legacyDir, 'bbs.db');
+  try {
+    await db.backup(legacyPath);
+    const legacy = new (require('better-sqlite3'))(legacyPath);
+    legacy.pragma('foreign_keys = OFF');
+    legacy.exec(`DROP TABLE direct_messages; DROP TABLE direct_reads; DROP TABLE direct_conversations;
+      CREATE TABLE direct_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER NOT NULL,
+        recipient_id INTEGER NOT NULL, content TEXT NOT NULL, is_read INTEGER DEFAULT 0, created_at TEXT DEFAULT '');`);
+    const insert = legacy.prepare('INSERT INTO direct_messages VALUES (?, ?, ?, ?, ?, ?)');
+    const at = '2026-10-20 10:00:00';
+    insert.run(101, a.id, b.id, '旧私信一', 1, at);
+    insert.run(102, b.id, a.id, '旧私信回复', 1, at);
+    insert.run(103, a.id, b.id, '尚未读到的私信', 0, at);
+    insert.run(104, c.id, b.id, '另一个会话', 0, at);
+    legacy.close();
+    const run = (body) => {
+      const code = `const fs=require('node:fs'),Module=require('node:module'),ts=require('typescript'),path=require('node:path');
+        const root=${JSON.stringify(root)},resolve=Module._resolveFilename;
+        Module._resolveFilename=function(s,...args){return resolve.call(this,s.startsWith('@/')?path.join(root,s.slice(2)):s,...args)};
+        require.extensions['.ts']=function(m,f){m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f)};
+        const {db}=require(path.join(root,'lib/db.ts')),social=require(path.join(root,'lib/social.ts'));
+        ${body};db.close();`;
+      const child = spawnSync(process.execPath, ['-e', code], { cwd: root, encoding: 'utf8', env: { ...process.env, HSFZ_DATA_DIR: legacyDir } });
+      assert.equal(child.status, 0, child.stderr);
+      return JSON.parse(child.stdout.trim());
+    };
+    const migrated = run(`const conversation=social.startConversation(${a.id},${JSON.stringify(b.username)});
+      const messages=social.directMessages(${a.id},conversation);
+      const before=[social.unreadDirectCount(${a.id}),social.unreadDirectCount(${b.id}),social.unreadDirectCount(${c.id})];
+      const reply=social.sendDirectMessage(${b.id},conversation,'迁移后的回复');
+      console.log(JSON.stringify({ids:messages.map(m=>m.id),contents:messages.map(m=>m.content),dates:messages.map(m=>m.created_at),before,reply,
+        count:db.prepare('SELECT COUNT(*) n FROM direct_conversations').get().n,
+        unreadAfter:social.unreadDirectCount(${a.id}),
+        backup:db.prepare("SELECT name FROM sqlite_master WHERE name='direct_messages_legacy_upgrade'").get()??null}));`);
+    assert.deepEqual(migrated.ids, [101,102,103]);
+    assert.deepEqual(migrated.contents, ['旧私信一','旧私信回复','尚未读到的私信']);
+    assert.deepEqual(migrated.dates, [at,at,at]);
+    assert.deepEqual(migrated.before, [0,2,0]);
+    assert.equal(migrated.reply, 105);
+    assert.equal(migrated.count, 2);
+    assert.equal(migrated.unreadAfter, 1);
+    assert.equal(migrated.backup, null);
+    assert.deepEqual(run(`console.log(JSON.stringify({messages:db.prepare('SELECT COUNT(*) n FROM direct_messages').get().n,conversations:db.prepare('SELECT COUNT(*) n FROM direct_conversations').get().n}));`), {messages:5, conversations:2});
+  } finally { fs.rmSync(legacyDir, { recursive:true, force:true }); }
+});
