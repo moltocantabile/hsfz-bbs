@@ -137,6 +137,13 @@ CREATE TABLE IF NOT EXISTS blocks (
   created_at TEXT DEFAULT '',
   UNIQUE(user_id, blocked_id)
 );
+CREATE TABLE IF NOT EXISTS guest_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT DEFAULT '',
+  contact TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  created_at TEXT DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS whitelist (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   real_name TEXT NOT NULL,
@@ -804,7 +811,7 @@ function ensureConfessionBoard() {
 export type UserRow = {
   id: number; username: string; password_hash: string; nickname: string; bio: string; avatar: string;
   role: string; status: string; reject_reason: string; banned: number;
-  custom_title: string; grade: string; created_at: string;
+  custom_title: string; grade: string; phone: string; email: string; created_at: string;
 };
 
 export const GRADES = ["初一", "初二", "初三", "高一", "高二", "高三", "已毕业", "其他"];

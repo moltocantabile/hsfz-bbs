@@ -12,7 +12,12 @@ export const metadata = { title: "账号设置" };
 
 export default async function SettingsPage() {
   const sessionUser = await requireUser();
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(sessionUser.id) as import("@/lib/db").UserRow;
+  const user = db
+    .prepare(
+      `SELECT id, username, nickname, avatar, custom_title, role, status, banned, grade, phone, email, bio, created_at
+       FROM users WHERE id = ?`
+    )
+    .get(sessionUser.id) as import("@/lib/db").UserRow;
   const postCount = userPostCount(user.id);
 
   return (
@@ -47,7 +52,7 @@ export default async function SettingsPage() {
         </div>
         <div className="card">
           <div className="card-header">基本资料</div>
-          <ProfileForm nickname={user.nickname} bio={user.bio} grade={user.grade} />
+          <ProfileForm nickname={user.nickname} bio={user.bio} grade={user.grade} phone={user.phone} />
         </div>
         <div className="card md:col-span-2">
           <div className="card-header">修改密码</div>

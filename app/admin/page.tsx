@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { TitleBadge } from "@/components/TitleBadge";
 import { ConfirmSubmit } from "@/components/SubmitButton";
 import { BadgeUploadForm } from "@/components/AdminBadgeForms";
+import { AdminResetPasswordForm } from "@/components/AdminResetPassword";
 import { WhitelistImportForm } from "@/components/WhitelistForms";
 import SiteBadge from "@/components/SiteBadge";
 import { timeAgo, ticketCategoryName, TICKET_STATUS } from "@/lib/format";
@@ -175,6 +176,11 @@ export default async function AdminPage({
                 ))}
               </ul>
             )}
+          </div>
+
+          <div className="card">
+            <div className="card-header">重置用户密码（忘记密码的人工通道）</div>
+            <AdminResetPasswordForm />
           </div>
 
           <div className="card">

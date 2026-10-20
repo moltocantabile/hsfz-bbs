@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { db, GRADES, UPLOAD_DIR } from "@/lib/db";
-import { getCurrentUser, requireUser } from "@/lib/auth";
+import { getCurrentUser, requireUser, destroyUserSessions } from "@/lib/auth";
 import { nowStr } from "@/lib/format";
 import type { ActionState } from "./auth";
 
@@ -22,13 +22,30 @@ export async function updateProfileAction(
   const nickname = String(formData.get("nickname") ?? "").trim();
   const bio = String(formData.get("bio") ?? "").trim();
   const grade = String(formData.get("grade") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const bindPassword = String(formData.get("bind_password") ?? "");
   if (!nickname || nickname.length > 12) return fail("昵称不能为空，且不超过 12 个字");
   if (bio.length > 100) return fail("个性签名不能超过 100 字");
   if (![...GRADES, ""].includes(grade)) return fail("年级不正确");
-  db.prepare("UPDATE users SET nickname = ?, bio = ?, grade = ? WHERE id = ?").run(
+  if (phone) {
+    if (!/^1[3-9]\d{9}$/.test(phone)) return fail("手机号格式不正确");
+    const current = db.prepare("SELECT phone FROM users WHERE id = ?").get(user.id) as {
+      phone: string;
+    };
+    if (phone !== current.phone) {
+      // 更换绑定手机号需验证登录密码，防止账号被冒用后改绑
+      const row = db.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id) as {
+        password_hash: string;
+      };
+      if (!bindPassword || !bcrypt.compareSync(bindPassword, row.password_hash))
+        return fail("更换绑定手机号需输入当前登录密码确认");
+    }
+  }
+  db.prepare("UPDATE users SET nickname = ?, bio = ?, grade = ?, phone = ? WHERE id = ?").run(
     nickname,
     bio,
     grade,
+    phone,
     user.id
   );
   revalidatePath("/", "layout");
@@ -80,7 +97,9 @@ export async function changePasswordAction(
     bcrypt.hashSync(newPassword, 10),
     user.id
   );
-  return okMsg("密码已修改，下次登录请使用新密码");
+  // 改密后销毁该账号全部会话，所有设备强制重新登录
+  destroyUserSessions(user.id);
+  redirect("/login?pwd=1");
 }
 
 export async function removeAvatarAction(): Promise<void> {

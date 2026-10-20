@@ -1,5 +1,32 @@
 "use server";
 
+import bcrypt from "bcryptjs";
+
+/** 管理员为用户重置密码（替代自助找回：同学找管理员人工核实后使用） */
+export async function adminResetPasswordAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const admin = await requireAdmin();
+  if (admin.role !== "admin") return fail("仅管理员可操作");
+  const username = String(formData.get("username") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (!username) return fail("请输入用户名");
+  if (password.length < 8) return fail("临时密码至少 8 位，重置后请通知对方尽快修改");
+  const row = db.prepare("SELECT id FROM users WHERE username = ?").get(username) as
+    | { id: number }
+    | undefined;
+  if (!row) return fail("用户不存在");
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
+    bcrypt.hashSync(password, 10),
+    row.id
+  );
+  destroyUserSessions(row.id);
+  revalidatePath("/admin");
+  return okMsg(`已重置 ${username} 的密码，其全部登录已退出。请通知对方用临时密码登录后尽快自行修改。`);
+}
+
+
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";

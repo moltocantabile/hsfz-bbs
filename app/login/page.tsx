@@ -3,17 +3,18 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { LoginForm } from "@/components/AuthForms";
 import SiteBadge from "@/components/SiteBadge";
+import { GuestRequestForm } from "@/components/GuestRequestForm";
 
 export const metadata = { title: "登录" };
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string; fast?: string }>;
+  searchParams: Promise<{ registered?: string; fast?: string; pwd?: string }>;
 }) {
   const user = await getCurrentUser();
   if (user) redirect("/");
-  const { registered, fast } = await searchParams;
+  const { registered, fast, pwd } = await searchParams;
 
   return (
     <div className="mx-auto max-w-sm pt-8">
@@ -23,6 +24,11 @@ export default async function LoginPage({
         <p className="text-sm text-muted">华南师范大学附属中学校园论坛</p>
       </div>
 
+      {pwd && (
+        <div className="mb-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-700 dark:text-emerald-400">
+          🔒 密码已修改，所有设备已退出登录。请使用新密码重新登录。
+        </div>
+      )}
       {registered && (
         <div className="mb-4 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-700 dark:text-emerald-400">
           {fast
@@ -34,11 +40,14 @@ export default async function LoginPage({
       <div className="card p-5">
         <LoginForm />
       </div>
-      <p className="mt-3 text-center text-sm">
-        <Link href="/forgot" className="link">
-          忘记密码？
-        </Link>
-      </p>
+      <details className="card mt-4 p-4">
+        <summary className="cursor-pointer select-none text-sm font-medium text-muted">
+          无法登录 / 忘记密码？点这里向管理员求助（无需登录）
+        </summary>
+        <div className="mt-3">
+          <GuestRequestForm />
+        </div>
+      </details>
     </div>
   );
 }

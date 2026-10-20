@@ -10,29 +10,6 @@ export type ActionState = { message: string; ok: boolean } | null;
 const fail = (message: string): ActionState => ({ message, ok: false });
 const okMsg = (message: string): ActionState => ({ message, ok: true });
 
-export async function resetPasswordAction(
-  _prev: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const username = String(formData.get("username") ?? "").trim().toLowerCase();
-  const phone = String(formData.get("phone") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const password2 = String(formData.get("password2") ?? "");
-  if (!username || !phone) return fail("请填写用户名和注册时的手机号");
-  if (password.length < 6) return fail("新密码至少 6 位");
-  if (password !== password2) return fail("两次输入的新密码不一致");
-  const row = db
-    .prepare("SELECT id, phone FROM users WHERE username = ?")
-    .get(username) as { id: number; phone: string } | undefined;
-  if (!row) return fail("用户不存在");
-  if (!row.phone) return fail("该账号未登记手机号，请联系管理员重置密码");
-  if (row.phone !== phone) return fail("手机号与注册信息不一致");
-  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
-    bcrypt.hashSync(password, 10),
-    row.id
-  );
-  return okMsg("密码已重置，请使用新密码登录");
-}
 
 export async function registerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const username = String(formData.get("username") ?? "").trim().toLowerCase();

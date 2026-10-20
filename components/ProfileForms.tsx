@@ -28,11 +28,12 @@ export function ProfileForm({
   nickname,
   bio,
   grade,
+  phone,
 }: {
   nickname: string;
   bio: string;
   grade: string;
-}) {
+  phone: string;}) {
   const [state, formAction] = useActionState(updateProfileAction, null);
   return (
     <form action={formAction} className="space-y-4 p-4">
@@ -51,6 +52,25 @@ export function ProfileForm({
             </option>
           ))}
         </select>
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">绑定手机号（用于找回密码）</label>
+        <input
+          name="phone"
+          maxLength={11}
+          defaultValue={phone}
+          className="input"
+          placeholder="11 位手机号"
+        />
+        <p className="mt-1 text-xs text-muted">
+          修改绑定需在下方输入当前登录密码确认；不修改则无需填写密码。
+        </p>
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          当前登录密码<span className="ml-1 text-xs text-muted">（仅修改绑定手机号时需要填写）</span>
+        </label>
+        <input name="bind_password" type="password" className="input" placeholder="选填" />
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium">个性签名</label>

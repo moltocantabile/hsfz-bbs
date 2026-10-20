@@ -134,8 +134,17 @@ export function siteStats() {
 }
 
 export function getUserByUsername(username: string) {
-  return db.prepare("SELECT * FROM users WHERE username = ?").get(username) as
-    | (import("./db").UserRow & { id: number })
+  // 永不返回 password_hash：该对象会作为 props 传给客户端组件（序列化到浏览器）
+  return db
+    .prepare(
+      `SELECT id, username, nickname, avatar, custom_title, role, status, banned, grade, bio, created_at
+       FROM users WHERE username = ?`
+    )
+    .get(username) as
+    | {
+        id: number; username: string; nickname: string; avatar: string; custom_title: string;
+        role: string; status: string; banned: number; grade: string; bio: string; created_at: string;
+      }
     | undefined;
 }
 
